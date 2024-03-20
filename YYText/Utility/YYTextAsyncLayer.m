@@ -155,33 +155,58 @@ static dispatch_queue_t YYTextAsyncLayerGetReleaseQueue() {
                 CGColorRelease(backgroundColor);
                 return;
             }
-            UIGraphicsBeginImageContextWithOptions(size, opaque, scale);
-            CGContextRef context = UIGraphicsGetCurrentContext();
-            if (opaque && context) {
-                CGContextSaveGState(context); {
-                    if (!backgroundColor || CGColorGetAlpha(backgroundColor) < 1) {
-                        CGContextSetFillColorWithColor(context, [UIColor whiteColor].CGColor);
-                        CGContextAddRect(context, CGRectMake(0, 0, size.width * scale, size.height * scale));
-                        CGContextFillPath(context);
-                    }
-                    if (backgroundColor) {
-                        CGContextSetFillColorWithColor(context, backgroundColor);
-                        CGContextAddRect(context, CGRectMake(0, 0, size.width * scale, size.height * scale));
-                        CGContextFillPath(context);
-                    }
-                } CGContextRestoreGState(context);
-                CGColorRelease(backgroundColor);
-            }
-            task.display(context, size, isCancelled);
-            if (isCancelled()) {
-                UIGraphicsEndImageContext();
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    if (task.didDisplay) task.didDisplay(self, NO);
-                });
-                return;
-            }
-            UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-            UIGraphicsEndImageContext();
+//            UIGraphicsBeginImageContextWithOptions(size, opaque, scale);
+//            CGContextRef context = UIGraphicsGetCurrentContext();
+//            if (opaque && context) {
+//                CGContextSaveGState(context); {
+//                    if (!backgroundColor || CGColorGetAlpha(backgroundColor) < 1) {
+//                        CGContextSetFillColorWithColor(context, [UIColor whiteColor].CGColor);
+//                        CGContextAddRect(context, CGRectMake(0, 0, size.width * scale, size.height * scale));
+//                        CGContextFillPath(context);
+//                    }
+//                    if (backgroundColor) {
+//                        CGContextSetFillColorWithColor(context, backgroundColor);
+//                        CGContextAddRect(context, CGRectMake(0, 0, size.width * scale, size.height * scale));
+//                        CGContextFillPath(context);
+//                    }
+//                } CGContextRestoreGState(context);
+//                CGColorRelease(backgroundColor);
+//            }
+//            task.display(context, size, isCancelled);
+//            if (isCancelled()) {
+//                UIGraphicsEndImageContext();
+//                dispatch_async(dispatch_get_main_queue(), ^{
+//                    if (task.didDisplay) task.didDisplay(self, NO);
+//                });
+//                return;
+//            }
+//            UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+//            UIGraphicsEndImageContext();
+            
+            UIGraphicsImageRendererFormat *format = [[UIGraphicsImageRendererFormat alloc] init];
+            format.opaque = opaque;
+            format.scale = scale;
+            UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:size format:format];
+            UIImage *image = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
+                CGContextRef context = rendererContext.CGContext;
+                if (opaque && context) {
+                    CGContextSaveGState(context); {
+                        if (!backgroundColor || CGColorGetAlpha(backgroundColor) < 1) {
+                            CGContextSetFillColorWithColor(context, [UIColor whiteColor].CGColor);
+                            CGContextAddRect(context, CGRectMake(0, 0, size.width * scale, size.height * scale));
+                            CGContextFillPath(context);
+                        }
+                        if (backgroundColor) {
+                            CGContextSetFillColorWithColor(context, backgroundColor);
+                            CGContextAddRect(context, CGRectMake(0, 0, size.width * scale, size.height * scale));
+                            CGContextFillPath(context);
+                        }
+                    } CGContextRestoreGState(context);
+                    CGColorRelease(backgroundColor);
+                }
+                task.display(context, size, isCancelled);
+            }];
+            
             if (isCancelled()) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (task.didDisplay) task.didDisplay(self, NO);
